@@ -1,0 +1,1 @@
+wget http://vc1.ucsd.edu/hed/hed_pretrained_bsds.caffemodel
