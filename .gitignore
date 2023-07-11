@@ -1,1 +1,12 @@
 compressor-data*
+output_data*
+input_data*
+images*
+runs*
+bubble-1
+bubble-python/images
+bubble-app/dist/resources*
+bubble-app/node_modules*
+bubble-app/client/node_modules*
+bubble-python/bubble*
+bubble-python/results*
