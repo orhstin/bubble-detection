@@ -3,6 +3,12 @@ import FileUploadService from "../services/FileUploadService";
 import IFile from "../types/File";
 import VideoPlayer from './VideoPlayer';
 
+interface file_timestamps {
+    fileName: string,
+    length: number,
+    timestamp_s: Array<string>,
+}
+
 const FileUpload: React.FC = () => {
     const [currentFile, setCurrentFile] = useState<File>();
     const [progress, setProgress] = useState<number>(0);
@@ -10,6 +16,9 @@ const FileUpload: React.FC = () => {
     const [fileInfos, setFileInfos] = useState<Array<IFile>>([]);
     const [resultInfos, setResultInfos] = useState<Array<IFile>>([]);
     const [videoUrl, setVideoUrl] = useState<string>("");
+    const [status, setStatus] = useState<number>(0);
+    const [count, setCount] = useState<number>(0);
+    const [timestamps, setTimestamps] = useState<file_timestamps>();
 
     const selectFile = (event: React.ChangeEvent<HTMLInputElement>) => {
         const { files } = event.target;
@@ -18,9 +27,31 @@ const FileUpload: React.FC = () => {
         setProgress(0);
     };
 
-    const detect = () => {
-        FileUploadService.detect();
+    const timestampHandler = (fileName: string) => {
+        FileUploadService.getTimestamps(fileName).then((response: any) => {
+            setTimestamps(response.data)
+        })
     }
+    useEffect(() => {
+        console.log(timestamps);
+    }, [timestamps])
+    const handleMessageChange = (message: string) => {
+        setMessage(message);
+    }
+    const detect = () => {
+        
+        FileUploadService.detect().then((response): any => {
+        })
+    }
+
+    useEffect(() => {
+        const interval = setInterval(() => {
+            FileUploadService.getStatus().then((response: any) => {
+                handleMessageChange(response.data);
+            })
+        }, 5000)
+        return () => clearInterval(interval)
+    }, [])
 
     const upload = () => {
         setProgress(0);
@@ -133,6 +164,20 @@ const FileUpload: React.FC = () => {
                         <ul className="list-group list-group-flush">
                             {resultInfos && resultInfos.map((file, index) => (
                                 <li className="list-group-item" key={index}>
+                                    {file.url !== "http://localhost:8080/stream/.DS_Store" && (
+                                        <div className="d-flex justify-content-center">
+                                            <button onClick={() => timestampHandler(file.name)}>{file.url}</button>
+                                        </div>
+                                    )}
+                                    {timestamps && (
+                                        <div className="mt-3">
+                                            <div className="row">
+                                                <h4 className="mr-3 col"> Timestamps </h4>
+                                                <p className="mt-1 col"> length = {timestamps.length} </p>
+                                            </div>
+                                            <p className="text-justify"> {timestamps.timestamp_s}</p>
+                                        </div>
+                                    )}
                                     {file.url !== "http://localhost:8080/stream/.DS_Store" && (
                                         <div className="d-flex justify-content-center">
                                             <VideoPlayer videoUrl={file.url}></VideoPlayer></div>

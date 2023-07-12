@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.detect = exports.getListResults = exports.stream = exports.download = exports.getListFiles = exports.upload = void 0;
+exports.getTimestamps = exports.getStatus = exports.detect = exports.getListResults = exports.stream = exports.download = exports.getListFiles = exports.upload = void 0;
 const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
 const upload_1 = __importDefault(require("../middleware/upload"));
@@ -108,15 +108,15 @@ const run_predict = (model, conf, source, project, temp) => {
     return new Promise((resolve, reject) => {
         const childProcess = (0, child_process_1.exec)(`. ../bubble-python/bubble/bin/activate && python ../bubble-python/predict.py ${model} ${conf} ${source} ${project} ${temp}`, (error, stdout, stderr) => {
             if (error) {
-                reject(`Error executing Python script: ${error.message}`);
+                reject(`Error executing Predict Python script: ${error.message}`);
                 return;
             }
             if (stdout) {
-                resolve(`Python script stderr: ${stdout}`);
+                resolve(`Predict Python script stderr: ${stdout}`);
                 return;
             }
             if (stderr) {
-                reject(`Python script stderr: ${stderr}`);
+                reject(`Predict Python script stderr: ${stderr}`);
             }
         });
         childProcess.on("close", (code) => {
@@ -130,14 +130,14 @@ const run_video_to_image = (video_file, filename) => {
     return new Promise((resolve, reject) => {
         const childProcess = (0, child_process_1.exec)(`. ../bubble-python/bubble/bin/activate && python ../bubble-python/video_to_images.py ${video_file} ${filename}`, (error, stdout, stderr) => {
             if (error) {
-                console.error(`Error executing Python script: ${error.message}`);
+                console.error(`Error executing VTI Python script: ${error.message}`);
                 return;
             }
             if (stderr) {
-                console.error(`Python script stderr: ${stderr}`);
+                console.error(`VTI Python script stderr: ${stderr}`);
                 return;
             }
-            resolve(`Python script output: ${stdout}`);
+            resolve(`VTI Python script output: ${stdout}`);
         });
         childProcess.on("close", (code) => {
             if (code !== 0) {
@@ -150,14 +150,13 @@ const run_image_to_video = (result_path, temp) => {
     return new Promise((resolve, reject) => {
         const childProcess = (0, child_process_1.exec)(`. ../bubble-python/bubble/bin/activate && python ../bubble-python/images_to_video.py ${result_path} ${temp}`, (error, stdout, stderr) => {
             if (error) {
-                console.error(`Error executing Python script: ${error.message}`);
+                console.error(`Error executing ITV Python script: ${error.message}`);
                 return;
             }
             if (stderr) {
-                console.error(`Python script stderr: ${stderr}`);
-                return;
+                reject(`ITV Python script stderr: ${stderr}`);
             }
-            console.log(`Python script output: ${stdout}`);
+            console.log(`ITV Python script output: ${stdout}`);
         });
         childProcess.on("close", (code) => {
             if (code !== 0) {
@@ -166,6 +165,12 @@ const run_image_to_video = (result_path, temp) => {
         });
     });
 };
+var temp_status = { 'code': 0, 'message': '' };
+const getStatus = (req, res) => {
+    // console.log("Getting status..." + temp_status.code + temp_status.message);
+    res.status(200).send(temp_status.message);
+};
+exports.getStatus = getStatus;
 const detect = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var uploads_path = __basedir + "/resources/static/assets/uploads/";
     const model = "/Users/austin/Desktop/bubble-detection/yolov5/runs/detect/train/weights/best.pt";
@@ -176,21 +181,31 @@ const detect = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     console.log("Detect called");
     files.forEach((file) => {
         if (file !== '.DS_Store') {
+            temp_status['code'] = 200;
+            temp_status['message'] = 'Running video_to_image';
             run_video_to_image(uploads_path + file, file).then((output) => {
-                console.log(output);
                 if (output.includes("completed")) {
                     var source = "/Users/austin/Desktop/bubble-detection/bubble-python/images/" + file;
                     const temp = file.split('.')[0] + '.' + file.split('.')[1] + '_result.mp4';
                     result_names.push(temp);
                     if (fs_1.default.existsSync(path_1.default.join(uploads_path, file))) {
+                        temp_status['code'] = 200;
+                        temp_status['message'] = 'Running Predict';
                         run_predict(model, conf, source, project, temp).then((output) => {
                             if (output.includes('Script completed')) {
-                                console.log("Running predict");
                                 const relevant_details = output.split('save_dir').pop();
                                 const result_path = relevant_details === null || relevant_details === void 0 ? void 0 : relevant_details.split('\n')[0].split(' ')[1].replace(/['']/g, '');
                                 if (result_path) {
-                                    console.log("Running image to video");
-                                    run_image_to_video(result_path, temp);
+                                    temp_status['code'] = 200;
+                                    temp_status['message'] = 'Running ITV';
+                                    run_image_to_video(result_path, temp).then((response) => {
+                                        console.log("ITV Response" + response);
+                                    }, (error) => {
+                                        if (error.includes("OpenCV: FFMPEG: fallback to use tag 0x7634706d/'mp4v'")) {
+                                            temp_status['code'] = 201;
+                                            temp_status['message'] = 'Video created';
+                                        }
+                                    });
                                 }
                                 else {
                                     console.log("Result_Path does not exist");
@@ -204,6 +219,24 @@ const detect = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
             });
         }
     });
-    var results_path = __basedir + "/resources/static/assets/results/";
 });
 exports.detect = detect;
+const getTimestamps = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const fileName = req.query.fileName;
+    const time_path = "../bubble-python/results/" + fileName + "/labels";
+    const timestamp_files = fs_1.default.readdirSync(time_path);
+    const timestamp_arr = [];
+    timestamp_files.forEach((timestamp) => {
+        var _a;
+        var temp = (_a = timestamp.split('-').pop()) === null || _a === void 0 ? void 0 : _a.replace('.txt', '');
+        if (typeof (temp) == 'string') {
+            timestamp_arr.push(temp + '  ');
+        }
+    });
+    res.status(200).send({
+        fileName: fileName,
+        length: timestamp_arr.length,
+        timestamp_s: timestamp_arr.toString().replace(/,/g, ''),
+    });
+});
+exports.getTimestamps = getTimestamps;

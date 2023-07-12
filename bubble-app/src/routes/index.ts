@@ -1,6 +1,8 @@
 import express, { Router } from "express";
 
-import {upload, getListFiles, download, stream, getListResults, detect} from "../controller/file.controller";
+import {upload, getListFiles, download, stream, getListResults, detect, 
+    getStatus,
+    getTimestamps} from "../controller/file.controller";
 
 const router: Router = express.Router();
 
@@ -11,6 +13,9 @@ const routes = (app: express.Application) => {
     router.get("/results", getListResults);
     router.get("files/:name", download);
     router.get("/detect", detect);
+    router.get("/getStatus", getStatus);
+    router.get("/getTimestamps", getTimestamps)
+
 
     app.use(router);
 };

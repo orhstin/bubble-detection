@@ -12,6 +12,8 @@ const routes = (app) => {
     router.get("/results", file_controller_1.getListResults);
     router.get("files/:name", file_controller_1.download);
     router.get("/detect", file_controller_1.detect);
+    router.get("/getStatus", file_controller_1.getStatus);
+    router.get("/getTimestamps", file_controller_1.getTimestamps);
     app.use(router);
 };
 module.exports = routes;

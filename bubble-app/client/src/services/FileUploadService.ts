@@ -34,12 +34,25 @@ const getResults = () : Promise<any> => {
 const detect = () : Promise<any> => {
     return http.get("/detect");
 }
+
+const getStatus = () : Promise<any> => {
+    return http.get("/getStatus");
+}
+
+const getTimestamps = (fileName: any) : Promise<any> => {
+    const params = {
+        fileName: fileName,
+    }
+    return http.get("/getTimestamps", {params});
+}
 export const FileUploadService = {
     upload,
     getFiles,
     stream,
     getResults,
     detect,
+    getStatus,
+    getTimestamps,
 }
 
 export default FileUploadService;
