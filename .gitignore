@@ -4,6 +4,7 @@ input_data*
 images*
 runs*
 bubble-1
+bubble-3
 bubble-python/images
 bubble-app/dist/resources*
 bubble-app/node_modules*

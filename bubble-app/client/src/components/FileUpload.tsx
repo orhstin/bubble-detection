@@ -48,6 +48,9 @@ const FileUpload: React.FC = () => {
         const interval = setInterval(() => {
             FileUploadService.getStatus().then((response: any) => {
                 handleMessageChange(response.data);
+                if(response.data=="Video uploaded"){
+                    FileUploadService.getResults();
+                }
             })
         }, 5000)
         return () => clearInterval(interval)

@@ -202,7 +202,7 @@ const detect = async(req: Request, res: Response) => {
                       }, (error) => {
                         if(error.includes("OpenCV: FFMPEG: fallback to use tag 0x7634706d/'mp4v'")){
                             temp_status['code'] = 201;
-                            temp_status['message'] = 'Video created';
+                            temp_status['message'] = 'Video uploaded';
                         }
                       })
                     } else {
